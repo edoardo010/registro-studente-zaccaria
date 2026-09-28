@@ -1,12 +1,67 @@
 # Registro Zaccaria
 
-## Configurazione Supabase
+## 1) Crea il progetto Supabase
 
-1. Crea un progetto su Supabase.
-2. Apri **SQL Editor**, crea una nuova query e incolla `supabase/schema.sql`.
-3. Esegui lo script.
-4. In **Authentication → Providers** abilita Email (e Google se necessario).
-5. Nel file HTML usa esclusivamente la `anon public key`, mai la `service_role key`.
-6. L'app deve usare `supabase.auth.signUp()` / `supabase.auth.signInWithPassword()` e deve salvare i file in `appunti/<user.id>/nome-file`.
+- Vai su https://supabase.com
+- Crea un nuovo progetto
+- Apri il menu SQL Editor
+- Incolla il codice di `supabase/schema.sql`
+- Esegui lo script
 
-Lo schema usa RLS: ogni studente può leggere e modificare solo i propri dati. Non usare policy `using (true)` in produzione.
+## 2) Abilita Auth
+
+Nel pannello Supabase:
+- Authentication → Providers
+- Abilita Email
+- Se vuoi, abilita anche Google
+
+## 3) Crea lo storage
+
+- Storage → New bucket
+- Nome: `appunti`
+- Privato: sì
+
+## 4) Collega l'HTML
+
+Nel file `index.html` modifica:
+
+```js
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+```
+
+con i valori reali del tuo progetto.
+
+## 5) Login
+
+Puoi usare:
+
+```js
+const { data, error } = await supabase.auth.signUp({
+  email: 'student@esempio.it',
+  password: 'Password123!'
+});
+```
+
+o anche:
+
+```js
+const { data, error } = await supabase.auth.signInWithPassword({
+  email: 'student@esempio.it',
+  password: 'Password123!'
+});
+```
+
+## 6) Schema SQL
+
+Il file `supabase/schema.sql` contiene la struttura corretta per:
+- studenti
+- voti
+- lezioni
+- appunti
+- avvisi
+- promemoria
+- presenze
+- sicurezza RLS
+
+Questo è il codice che va incollato in Supabase SQL Editor.
