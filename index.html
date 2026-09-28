@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Zaccaria - Studente</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f8f9fa;
+        }
+        .sidebar-item.active {
+            background: rgba(16, 112, 130, 0.1);
+            border-left: 4px solid #107082;
+            padding-left: calc(1.5rem - 4px);
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+        }
+        .grade-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+        .lesson-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .status-next {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .status-upcoming {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+    </style>
+</head>
+<body>
+    <div class="flex h-screen bg-gray-100">
+        <!-- SIDEBAR -->
+        <div class="w-64 bg-white shadow-lg overflow-y-auto">
+            <div class="p-6 border-b">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center text-white font-bold text-xl">Z</div>
+                    <div>
+                        <h1 class="font-bold text-gray-900">Registro</h1>
+                        <p class="text-xs text-gray-500">ZACCARIA / 2024-25</p>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="p-4 space-y-2">
+                <button onclick="switchPage('oggi')" class="sidebar-item active w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition flex items-center gap-3 text-gray-700">
+                    <span>📅</span>
+                    <span>Oggi</span>
+                </button>
+                <button onclick="switchPage('voti')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition flex items-center gap-3 text-gray-700">
+                    <span>📊</span>
+                    <span>Voti</span>
+                </button>
+                <button onclick="switchPage('lezioni')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition flex items-center gap-3 text-gray-700">
+                    <span>📚</span>
+                    <span>Lezioni</span>
+                </button>
+                <button onclick="switchPage('appunti')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition flex items-center gap-3 text-gray-700">
+                    <span>📝</span>
+                    <span>Appunti</span>
+                </button>
+                <button onclick="switchPage('avvisi')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition flex items-center gap-3 text-gray-700">
+                    <span>🔔</span>
+                    <span>Avvisi</span>
+                </button>
+                <button onclick="switchPage('promemoria')" class="sidebar-item w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition flex items-center gap-3 text-gray-700">
+                    <span>⏰</span>
+                    <span>Promemoria</span>
+                </button>
+            </nav>
+
+            <div class="absolute bottom-4 left-4 right-4 p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-teal-600 rounded-full flex items-center justify-center text-white font-bold">ES</div>
+                    <div class="text-sm">
+                        <p class="font-semibold text-gray-900">Edoardo</p>
+                        <p class="text-xs text-gray-500">IL TUO REGIST...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MAIN CONTENT -->
+        <div class="flex-1 overflow-auto">
+            <div class="p-8">
+                <!-- HEADER -->
+                <div class="mb-8">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h2 id="pageTitle" class="text-3xl font-bold text-gray-900">Oggi</h2>
+                            <p class="text-gray-500 text-sm mt-1"><span id="currentDate"></span> - Anno scolastico 2024-25</p>
+                        </div>
+                        <div class="flex gap-3">
+                            <button id="setupBtn" onclick="setupDatabase()" class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition font-medium">
+                                ⚙️ Setup Database
+                            </button>
+                            <button onclick="loadData()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
+                                🔄 Carica Dati
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PAGE CONTENT -->
+                <div id="oggi" class="page-content">
+                    <div class="grid grid-cols-3 gap-6 mb-8">
+                        <div class="card">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 text-sm">MEDIA</p>
+                                    <p id="mediaVoto" class="text-4xl font-bold text-gray-900">8.2</p>
+                                    <p class="text-xs text-green-600 mt-1">+0.3 rispetto al mese scorso</p>
+                                </div>
+                                <div class="grade-badge" style="background: #e8f5e9; color: #2e7d32;">8.2</div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-gray-500 text-sm">PRESENZE</p>
+                                    <p id="presenze" class="text-4xl font-bold text-gray-900">96%</p>
+                                    <p class="text-xs text-green-600 mt-1">Ottimo</p>
+                                </div>
+                                <div class="w-20 h-20 relative">
+                                    <canvas id="presenceChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div>
+                                <p class="text-gray-500 text-sm mb-4">PROSSIMO IN AGENDA</p>
+                                <div>
+                                    <p class="font-bold text-gray-900">Matematica</p>
+                                    <p class="text-sm text-gray-500 mt-1">08:00 - Aula 2.4</p>
+                                    <p class="text-xs text-gray-400 mt-2">Prof.ssa Riva</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="card">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-bold text-gray-900">I tuoi voti</h3>
+                                <a href="#" onclick="switchPage('voti')" class="text-teal-600 text-sm font-medium">Vedi tutti →</a>
+                            </div>
+                            <div id="recentGrades" class="space-y-4">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="flex justify-between items-center mb-6">
+                                <h3 class="text-xl font-bold text-gray-900">Da non perdere</h3>
+                                <a href="#" onclick="switchPage('promemoria')" class="text-teal-600 text-sm font-medium">Apri agenda</a>
+                            </div>
+                            <div id="promemoriaList" class="space-y-4">
+                                <!-- Populated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VOTI PAGE -->
+                <div id="voti" class="page-content hidden">
+                    <div class="card mb-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Registro Voti</h3>
+                        <div class="grid grid-cols-4 gap-4 mb-6">
+                            <input type="text" id="materia" placeholder="Materia" class="px-4 py-2 border rounded-lg">
+                            <input type="number" id="voto" placeholder="Voto" min="1" max="10" step="0.5" class="px-4 py-2 border rounded-lg">
+                            <input type="text" id="insegnante" placeholder="Insegnante" class="px-4 py-2 border rounded-lg">
+                            <button onclick="addVoto()" class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">Aggiungi</button>
+                        </div>
+                        <div id="votiTable" class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50 border-b">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Materia</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Voto</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Insegnante</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Data</th>
+                                        <th class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Azioni</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="votiBody" class="divide-y">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LEZIONI PAGE -->
+                <div id="lezioni" class="page-content hidden">
+                    <div class="card">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Il ritmo della settimana</h3>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900 mb-4">LUN - 1 GEN</h4>
+                                <div id="lessonLun" class="space-y-4">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-lg font-bold text-gray-900 mb-4">MAR - 1 GEN</h4>
+                                <div id="lessonMar" class="space-y-4">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- APPUNTI PAGE -->
+                <div id="appunti" class="page-content hidden">
+                    <div class="card mb-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Appunti</h3>
+                        <div class="mb-6 p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-teal-600 transition cursor-pointer" onclick="document.getElementById('fileInput').click()">
+                            <input type="file" id="fileInput" class="hidden" onchange="uploadAppunti(event)">
+                            <p class="text-center text-gray-600">📁 Trascinare file o cliccare per caricare</p>
+                        </div>
+                        <div id="appuntiList" class="space-y-3">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AVVISI PAGE -->
+                <div id="avvisi" class="page-content hidden">
+                    <div class="card">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Avvisi</h3>
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <input type="text" id="avvisoTitolo" placeholder="Titolo" class="px-4 py-2 border rounded-lg">
+                            <input type="text" id="avvisoAutore" placeholder="Autore" class="px-4 py-2 border rounded-lg">
+                            <textarea id="avvisoTesto" placeholder="Testo avviso" class="col-span-2 px-4 py-2 border rounded-lg" rows="3"></textarea>
+                            <button onclick="addAvviso()" class="col-span-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">Aggiungi Avviso</button>
+                        </div>
+                        <div id="avvisiList" class="space-y-4">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PROMEMORIA PAGE -->
+                <div id="promemoria" class="page-content hidden">
+                    <div class="card">
+                        <h3 class="text-xl font-bold text-gray-900 mb-6">Promemoria</h3>
+                        <div class="grid grid-cols-3 gap-4 mb-6">
+                            <input type="text" id="memoriaMateria" placeholder="Materia" class="px-4 py-2 border rounded-lg">
+                            <input type="text" id="memoriaCompito" placeholder="Compito/Argomento" class="px-4 py-2 border rounded-lg">
+                            <input type="date" id="memoriaData" class="px-4 py-2 border rounded-lg">
+                            <select id="memoriaGiorno" class="col-span-3 px-4 py-2 border rounded-lg">
+                                <option value="">Giorno della settimana</option>
+                                <option value="Lunedì">Lunedì</option>
+                                <option value="Martedì">Martedì</option>
+                                <option value="Mercoledì">Mercoledì</option>
+                                <option value="Giovedì">Giovedì</option>
+                                <option value="Venerdì">Venerdì</option>
+                            </select>
+                            <button onclick="addPromemoria()" class="col-span-3 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">Aggiungi Promemoria</button>
+                        </div>
+                        <div id="promemoriList" class="space-y-4">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SUPABASE CONFIG
+        const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+        const SUPABASE_KEY = 'YOUR_ANON_KEY';
+        
+        let supabase;
+        let studentId = null;
+
+        // Initialize Supabase
+        function initSupabase() {
+            if (!SUPABASE_URL.includes('YOUR_PROJECT')) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log('✅ Supabase inizializzato');
+            } else {
+                console.error('❌ Configura SUPABASE_URL e SUPABASE_KEY nel codice');
+                alert('Configura le credenziali Supabase nel file HTML');
+            }
+        }
+
+        // SETUP DATABASE SCHEMA
+        async function setupDatabase() {
+            if (!supabase) {
+                alert('Configura prima le credenziali Supabase');
+                return;
+            }
+
+            try {
+                const setupSQL = `
+                    -- Create students table
+                    CREATE TABLE IF NOT EXISTS students (
+                        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                        name TEXT NOT NULL,
+                        surname TEXT NOT NULL,
+                        email TEXT UNIQUE NOT NULL,
+                        school_year TEXT DEFAULT '2024-25',
+                        created_at TIMESTAMP DEFAULT NOW()
+                    );
+
+                    -- Create grades table
+                    CREATE TABLE IF NOT EXISTS grades (
+                        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                        student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+                        subject TEXT NOT NULL,
+                        grade DECIMAL(3,1) NOT NULL,
+                        teacher TEXT,
+                        date TIMESTAMP DEFAULT NOW()
+                    );
+
+                    -- Create lessons table
+                    CREATE TABLE IF NOT EXISTS lessons (
+                        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                        student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+                        subject TEXT NOT NULL,
+                        teacher TEXT,
+                        day_of_week TEXT,
+                        time TEXT,
+                        classroom TEXT,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    );
+
+                    -- Create notes (appunti) table
+                    CREATE TABLE IF NOT EXISTS notes (
+                        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                        student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+                        title TEXT NOT NULL,
+                        file_url TEXT,
+                        file_name TEXT,
+                        subject TEXT,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    );
+
+                    -- Create notifications (avvisi) table
+                    CREATE TABLE IF NOT EXISTS notifications (
+                        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                        student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+                        title TEXT NOT NULL,
+                        content TEXT,
+                        author TEXT,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    );
+
+                    -- Create reminders (promemoria) table
+                    CREATE TABLE IF NOT EXISTS reminders (
+                        id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+                        student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+                        subject TEXT NOT NULL,
+                        task TEXT NOT NULL,
+                        day_of_week TEXT,
+                        due_date DATE,
+                        created_at TIMESTAMP DEFAULT NOW()
+                    );
+
+                    -- Enable RLS (Row Level Security)
+                    ALTER TABLE students ENABLE ROW LEVEL SECURITY;
+                    ALTER TABLE grades ENABLE ROW LEVEL SECURITY;
+                    ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
+                    ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+                    ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+                    ALTER TABLE reminders ENABLE ROW LEVEL SECURITY;
+                `;
+
+                // Execute using Supabase SQL
+                const { data, error } = await supabase.rpc('exec_sql', { sql: setupSQL });
+                
+                if (error) {
+                    console.error('Errore durante setup:', error);
+                    // Fallback: Create tables uno per uno
+                    await createTablesManually();
+                } else {
+                    console.log('✅ Database creato con successo!');
+                    alert('✅ Database configurato con successo!');
+                    await createTestStudent();
+                }
+            } catch (error) {
+                console.error('Errore:', error);
+                alert('Errore nel setup del database. Vedi console.');
+            }
+        }
+
+        // Fallback: Create tables manually
+        async function createTablesManually() {
+            try {
+                // Create students table
+                await supabase.from('students').insert([{
+                    name: 'Edoardo',
+                    surname: 'Scarisi',
+                    email: 'edoardo@zaccaria.it',
+                    school_year: '2024-25'
+                }]).select();
+
+                // Test if tables exist
+                const { data: students } = await supabase.from('students').select('*');
+                
+                if (students) {
+                    console.log('✅ Tabelle create con successo!');
+                    studentId = students[0].id;
+                    alert('✅ Database configurato! ID studente: ' + studentId);
+                    await insertTestData();
+                }
+            } catch (error) {
+                console.error('❌ Errore:', error.message);
+                console.log('💡 Copia e incolla questo SQL nella console Supabase:');
+                console.log(getSQLSchema());
+            }
+        }
+
+        // Get SQL Schema for manual creation
+        function getSQLSchema() {
+            return `
+-- 1. Create students table
+CREATE TABLE IF NOT EXISTS students (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    name TEXT NOT NULL,
+    surname TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    school_year TEXT DEFAULT '2024-25',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 2. Create grades table
+CREATE TABLE IF NOT EXISTS grades (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    subject TEXT NOT NULL,
+    grade DECIMAL(3,1) NOT NULL,
+    teacher TEXT,
+    date TIMESTAMP DEFAULT NOW()
+);
+
+-- 3. Create lessons table
+CREATE TABLE IF NOT EXISTS lessons (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    subject TEXT NOT NULL,
+    teacher TEXT,
+    day_of_week TEXT,
+    time TEXT,
+    classroom TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 4. Create notes table
+CREATE TABLE IF NOT EXISTS notes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    file_url TEXT,
+    file_name TEXT,
+    subject TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 5. Create notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    content TEXT,
+    author TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 6. Create reminders table
+CREATE TABLE IF NOT EXISTS reminders (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    subject TEXT NOT NULL,
+    task TEXT NOT NULL,
+    day_of_week TEXT,
+    due_date DATE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 7. Enable RLS
+ALTER TABLE students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE grades ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reminders ENABLE ROW LEVEL SECURITY;
+
+-- 8. Create RLS Policies (anon can insert/read/update)
+CREATE POLICY "Allow all operations" ON students FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all operations" ON grades FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all operations" ON lessons FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all operations" ON notes FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all operations" ON notifications FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all operations" ON reminders FOR ALL USING (true) WITH CHECK (true);
+            `;
+        }
+
+        // Create test student
+        async function createTestStudent() {
+            const { data, error } = await supabase.from('students').insert([{
+                name: 'Edoardo',
+                surname: 'Scarisi',
+                email: `edoardo${Date.now()}@zaccaria.it`,
+                school_year: '2024-25'
+            }]).select();
+
+            if (!error && data && data.length > 0) {
+                studentId = data[0].id;
+                console.log('✅ Studente creato:', studentId);
+                await insertTestData();
+            }
+        }
+
+        // Insert test data
+        async function insertTestData() {
+            if (!studentId) {
+                console.error('No student ID');
+                return;
+            }
+
+            // Insert sample grades
+            const grades = [
+                { subject: 'Matematica', grade: 8.5, teacher: 'Prof.ssa Riva' },
+                { subject: 'Italiano', grade: 9, teacher: 'Prof. Conti' },
+                { subject: 'Fisica', grade: 7.5, teacher: 'Prof. Neri' },
+                { subject: 'Inglese', grade: 8, teacher: 'Prof.ssa Green' }
+            ];
+
+            for (let grade of grades) {
+                await supabase.from('grades').insert([{
+                    student_id: studentId,
+                    ...grade
+                }]);
+            }
+
+            // Insert sample lessons
+            const lessons = [
+                { subject: 'Matematica', teacher: 'Prof.ssa Riva', day_of_week: 'Lunedì', time: '08:00', classroom: 'Aula 2.4' },
+                { subject: 'Storia dell\'arte', teacher: 'Prof. Moretti', day_of_week: 'Lunedì', time: '09:00', classroom: 'Aula 1.2' },
+                { subject: 'Italiano', teacher: 'Prof. Conti', day_of_week: 'Lunedì', time: '11:00', classroom: 'Aula 2.1' },
+                { subject: 'Fisica', teacher: 'Prof. Neri', day_of_week: 'Martedì', time: '08:00', classroom: 'LAB. SCIENZE' },
+                { subject: 'Inglese', teacher: 'Prof.ssa Green', day_of_week: 'Martedì', time: '10:00', classroom: 'Aula 1.4' }
+            ];
+
+            for (let lesson of lessons) {
+                await supabase.from('lessons').insert([{
+                    student_id: studentId,
+                    ...lesson
+                }]);
+            }
+
+            console.log('✅ Dati di test inseriti!');
+            await loadData();
+        }
+
+        // Load data from database
+        async function loadData() {
+            if (!supabase) {
+                alert('Configura le credenziali Supabase');
+                return;
+            }
+
+            try {
+                // Get first student if no studentId
+                if (!studentId) {
+                    const { data: students } = await supabase.from('students').select('*').limit(1);
+                    if (students && students.length > 0) {
+                        studentId = students[0].id;
+                    }
+                }
+
+                if (!studentId) {
+                    alert('Nessuno studente trovato. Clicca "Setup Database" prima.');
+                    return;
+                }
+
+                // Load grades
+                const { data: grades } = await supabase
+                    .from('grades')
+                    .select('*')
+                    .eq('student_id', studentId)
+                    .order('date', { ascending: false });
+
+                // Load lessons
+                const { data: lessons } = await supabase
+                    .from('lessons')
+                    .select('*')
+                    .eq('student_id', studentId);
+
+                // Load notes
+                const { data: notes } = await supabase
+                    .from('notes')
+                    .select('*')
+                    .eq('student_id', studentId);
+
+                // Load notifications
+                const { data: notifications } = await supabase
+                    .from('notifications')
+                    .select('*')
+                    .eq('student_id', studentId)
+                    .order('created_at', { ascending: false });
+
+                // Load reminders
+                const { data: reminders } = await supabase
+                    .from('reminders')
+                    .select('*')
+                    .eq('student_id', studentId)
+                    .order('due_date', { ascending: true });
+
+                // Render UI
+                renderGrades(grades);
+                renderLessons(lessons);
+                renderNotes(notes);
+                renderNotifications(notifications);
+                renderReminders(reminders);
+                updateDashboard(grades, reminders);
+
+                console.log('✅ Dati caricati con successo!');
+                alert('✅ Dati caricati!');
+            } catch (error) {
+                console.error('Errore nel caricamento:', error);
+            }
+        }
+
+        // Add grade
+        async function addVoto() {
+            const materia = document.getElementById('materia').value;
+            const voto = document.getElementById('voto').value;
+            const insegnante = document.getElementById('insegnante').value;
+
+            if (!materia || !voto) {
+                alert('Compila materia e voto');
+                return;
+            }
+
+            if (!studentId) {
+                alert('Seleziona uno studente');
+                return;
+            }
+
+            const { data, error } = await supabase.from('grades').insert([{
+                student_id: studentId,
+                subject: materia,
+                grade: parseFloat(voto),
+                teacher: insegnante
+            }]).select();
+
+            if (!error) {
+                document.getElementById('materia').value = '';
+                document.getElementById('voto').value = '';
+                document.getElementById('insegnante').value = '';
+                await loadData();
+            } else {
+                alert('Errore: ' + error.message);
+            }
+        }
+
+        // Add reminder
+        async function addPromemoria() {
+            const materia = document.getElementById('memoriaMateria').value;
+            const compito = document.getElementById('memoriaCompito').value;
+            const data = document.getElementById('memoriaData').value;
+            const giorno = document.getElementById('memoriaGiorno').value;
+
+            if (!materia || !compito) {
+                alert('Compila materia e compito');
+                return;
+            }
+
+            const { error } = await supabase.from('reminders').insert([{
+                student_id: studentId,
+                subject: materia,
+                task: compito,
+                due_date: data || null,
+                day_of_week: giorno || null
+            }]);
+
+            if (!error) {
+                document.getElementById('memoriaMateria').value = '';
+                document.getElementById('memoriaCompito').value = '';
+                document.getElementById('memoriaData').value = '';
+                document.getElementById('memoriaGiorno').value = '';
+                await loadData();
+            }
+        }
+
+        // Add notification
+        async function addAvviso() {
+            const titolo = document.getElementById('avvisoTitolo').value;
+            const autore = document.getElementById('avvisoAutore').value;
+            const testo = document.getElementById('avvisoTesto').value;
+
+            if (!titolo || !testo) {
+                alert('Compila titolo e testo');
+                return;
+            }
+
+            const { error } = await supabase.from('notifications').insert([{
+                student_id: studentId,
+                title: titolo,
+                content: testo,
+                author: autore
+            }]);
+
+            if (!error) {
+                document.getElementById('avvisoTitolo').value = '';
+                document.getElementById('avvisoAutore').value = '';
+                document.getElementById('avvisoTesto').value = '';
+                await loadData();
+            }
+        }
+
+        // Upload file
+        async function uploadAppunti(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                const filePath = `notes/${Date.now()}-${file.name}`;
+                
+                const { data, error: uploadError } = await supabase.storage
+                    .from('appunti')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('appunti')
+                    .getPublicUrl(filePath);
+
+                const { error: dbError } = await supabase.from('notes').insert([{
+                    student_id: studentId,
+                    title: file.name,
+                    file_name: file.name,
+                    file_url: publicUrl
+                }]);
+
+                if (!dbError) {
+                    await loadData();
+                    alert('✅ File caricato!');
+                }
+            } catch (error) {
+                console.error('Errore upload:', error);
+                alert('Errore upload: ' + error.message);
+            }
+        }
+
+        // Render functions
+        function renderGrades(grades) {
+            const tbody = document.getElementById('votiBody');
+            tbody.innerHTML = '';
+
+            if (!grades || grades.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-4 text-center text-gray-500">Nessun voto</td></tr>';
+                return;
+            }
+
+            grades.forEach(grade => {
+                const row = `
+                    <tr>
+                        <td class="px-6 py-4 text-sm text-gray-900">${grade.subject}</td>
+                        <td class="px-6 py-4"><span class="grade-badge" style="background: ${grade.grade >= 8 ? '#e8f5e9' : '#fff3e0'}; color: ${grade.grade >= 8 ? '#2e7d32' : '#f57c00'}">${grade.grade}</span></td>
+                        <td class="px-6 py-4 text-sm text-gray-600">${grade.teacher || '-'}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">${new Date(grade.date).toLocaleDateString('it-IT')}</td>
+                        <td class="px-6 py-4 text-sm"><button onclick="deleteGrade('${grade.id}')" class="text-red-600 hover:text-red-900">Elimina</button></td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+
+            // Update average
+            if (grades.length > 0) {
+                const avg = (grades.reduce((sum, g) => sum + g.grade, 0) / grades.length).toFixed(1);
+                document.getElementById('mediaVoto').textContent = avg;
+            }
+
+            // Show recent in dashboard
+            const recent = document.getElementById('recentGrades');
+            recent.innerHTML = '';
+            grades.slice(0, 4).forEach(grade => {
+                recent.innerHTML += `
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded">
+                        <div>
+                            <p class="font-semibold text-gray-900">${grade.subject}</p>
+                            <p class="text-xs text-gray-500">${grade.teacher}</p>
+                        </div>
+                        <span class="grade-badge" style="background: ${grade.grade >= 8 ? '#e8f5e9' : '#fff3e0'}; color: ${grade.grade >= 8 ? '#2e7d32' : '#f57c00'}">${grade.grade}</span>
+                    </div>
+                `;
+            });
+        }
+
+        function renderLessons(lessons) {
+            const lunday = document.getElementById('lessonLun');
+            const martedi = document.getElementById('lessonMar');
+
+            lunday.innerHTML = '';
+            martedi.innerHTML = '';
+
+            if (!lessons) return;
+
+            lessons.forEach(lesson => {
+                const html = `
+                    <div class="p-4 border-l-4" style="border-color: ${getSubjectColor(lesson.subject)}">
+                        <p class="font-semibold text-gray-900">${lesson.subject}</p>
+                        <p class="text-sm text-gray-600">${lesson.teacher}</p>
+                        <p class="text-xs text-gray-500 mt-2">${lesson.time} - ${lesson.classroom}</p>
+                        <span class="lesson-status ${lesson.subject.includes('next') ? 'status-next' : 'status-upcoming'}">UPCOMING</span>
+                    </div>
+                `;
+
+                if (lesson.day_of_week === 'Lunedì') {
+                    lunday.innerHTML += html;
+                } else if (lesson.day_of_week === 'Martedì') {
+                    martedi.innerHTML += html;
+                }
+            });
+        }
+
+        function renderNotes(notes) {
+            const list = document.getElementById('appuntiList');
+            list.innerHTML = '';
+
+            if (!notes || notes.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 text-center">Nessun appunto caricato</p>';
+                return;
+            }
+
+            notes.forEach(note => {
+                list.innerHTML += `
+                    <div class="p-4 border rounded-lg bg-gray-50">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-semibold text-gray-900">📄 ${note.title}</p>
+                                <p class="text-xs text-gray-500">${note.subject || ''}</p>
+                                <p class="text-xs text-gray-400 mt-1">${new Date(note.created_at).toLocaleDateString('it-IT')}</p>
+                            </div>
+                            <button onclick="deleteNote('${note.id}')" class="text-red-600 hover:text-red-900 text-sm">Elimina</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderNotifications(notifications) {
+            const list = document.getElementById('avvisiList');
+            list.innerHTML = '';
+
+            if (!notifications || notifications.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 text-center">Nessun avviso</p>';
+                return;
+            }
+
+            notifications.forEach(notif => {
+                list.innerHTML += `
+                    <div class="p-4 border-l-4 border-blue-500 bg-blue-50 rounded">
+                        <p class="font-semibold text-gray-900">${notif.title}</p>
+                        <p class="text-sm text-gray-700 mt-2">${notif.content}</p>
+                        <p class="text-xs text-gray-500 mt-2">Di: ${notif.author || 'Admin'}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function renderReminders(reminders) {
+            const list = document.getElementById('promemoriList');
+            const dashboard = document.getElementById('promemoriaList');
+            
+            list.innerHTML = '';
+            dashboard.innerHTML = '';
+
+            if (!reminders || reminders.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 text-center">Nessun promemoria</p>';
+                dashboard.innerHTML = '<p class="text-gray-500 text-center">Nessun promemoria</p>';
+                return;
+            }
+
+            reminders.forEach(reminder => {
+                const html = `
+                    <div class="p-4 border-l-4 border-yellow-500 bg-yellow-50 rounded">
+                        <p class="font-semibold text-gray-900">${reminder.subject}</p>
+                        <p class="text-sm text-gray-700">${reminder.task}</p>
+                        <p class="text-xs text-gray-500 mt-2">
+                            ${reminder.day_of_week ? reminder.day_of_week : new Date(reminder.due_date).toLocaleDateString('it-IT')}
+                        </p>
+                    </div>
+                `;
+                list.innerHTML += html;
+            });
+
+            // Dashboard recent
+            reminders.slice(0, 2).forEach(reminder => {
+                dashboard.innerHTML += `
+                    <div class="p-3 bg-yellow-50 rounded border-l-4 border-yellow-500">
+                        <p class="font-semibold text-gray-900 text-sm">${reminder.subject}</p>
+                        <p class="text-xs text-gray-600">${reminder.task}</p>
+                    </div>
+                `;
+            });
+        }
+
+        function updateDashboard(grades, reminders) {
+            if (grades && grades.length > 0) {
+                const avg = (grades.reduce((sum, g) => sum + g.grade, 0) / grades.length).toFixed(1);
+                document.getElementById('mediaVoto').textContent = avg;
+            }
+        }
+
+        // Delete functions
+        async function deleteGrade(id) {
+            if (!confirm('Eliminare il voto?')) return;
+            await supabase.from('grades').delete().eq('id', id);
+            await loadData();
+        }
+
+        async function deleteNote(id) {
+            if (!confirm('Eliminare l\'appunto?')) return;
+            await supabase.from('notes').delete().eq('id', id);
+            await loadData();
+        }
+
+        // Switch page
+        function switchPage(page) {
+            document.querySelectorAll('.page-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(page).classList.remove('hidden');
+
+            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+            event.target.closest('.sidebar-item').classList.add('active');
+
+            const titles = {
+                'oggi': 'Oggi',
+                'voti': 'Voti',
+                'lezioni': 'Lezioni',
+                'appunti': 'Appunti',
+                'avvisi': 'Avvisi',
+                'promemoria': 'Promemoria'
+            };
+            document.getElementById('pageTitle').textContent = titles[page] || 'Oggi';
+        }
+
+        // Utilities
+        function getSubjectColor(subject) {
+            const colors = {
+                'Matematica': '#ff6b6b',
+                'Italiano': '#4ecdc4',
+                'Fisica': '#45b7d1',
+                'Inglese': '#ffd93d',
+                'default': '#a8a8a8'
+            };
+            return colors[subject] || colors.default;
+        }
+
+        // Initialize
+        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('it-IT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        // On load
+        window.addEventListener('load', () => {
+            initSupabase();
+        });
+    </script>
+</body>
+</html>
